@@ -8,8 +8,8 @@ export enum SplitOrientation {
 }
 
 export enum PanelType {
-    Root = 'root',
     Split = 'split',
+    Panel = 'panel',
     Resize = 'resize',
 }
 
@@ -28,19 +28,19 @@ export const panels = writable<{
 }>({
     layoutSettings: {
         id: '1BXcuB6i66',
-        type: PanelType.Root,
+        type: PanelType.Split,
         orientation: SplitOrientation.Horizontal,
         percent: 100,
         children: [
             {
                 id: '3La5i2dZci',
-                type: PanelType.Split,
+                type: PanelType.Panel,
                 orientation: SplitOrientation.Horizontal,
                 percent: 20,
             },
             {
                 id: 'PEXjXDeaq2',
-                type: PanelType.Split,
+                type: PanelType.Panel,
                 orientation: SplitOrientation.Horizontal,
                 percent: 30,
             },
@@ -52,29 +52,29 @@ export const panels = writable<{
                 children: [
                     {
                         id: 'lU7nIxd7B9',
-                        type: PanelType.Split,
+                        type: PanelType.Panel,
                         orientation: SplitOrientation.Horizontal,
-                        percent: 50,
-                        children: [
-                            {
-                                id: 'oSC_U2Vcyn',
-                                type: PanelType.Split,
-                                orientation: SplitOrientation.Horizontal,
-                                percent: 50,
-                            },
-                            {
-                                id: 'WtaDeMFoUm',
-                                type: PanelType.Split,
-                                orientation: SplitOrientation.Horizontal,
-                                percent: 50,
-                            }
-                        ],
+                        percent: 30,
+                        // children: [
+                        //     {
+                        //         id: 'oSC_U2Vcyn',
+                        //         type: PanelType.Panel,
+                        //         orientation: SplitOrientation.Horizontal,
+                        //         percent: 50,
+                        //     },
+                        //     {
+                        //         id: 'WtaDeMFoUm',
+                        //         type: PanelType.Panel,
+                        //         orientation: SplitOrientation.Horizontal,
+                        //         percent: 50,
+                        //     }
+                        // ],
                     },
                     {
                         id: '_BkpAPvUb-',
-                        type: PanelType.Split,
+                        type: PanelType.Panel,
                         orientation: SplitOrientation.Horizontal,
-                        percent: 50,
+                        percent: 70,
                     }
                 ]
             }
@@ -90,71 +90,66 @@ export const panelsWithDimensions = derived([dimensions, panels], (value) => {
     const addToAllPanels = (id: string, dimensions) => {
         allPanels[id] = dimensions;
     }
+    
+    const getNodeDimensions = (node, split) => {
+        const { width, height, orientation: splitOrientation, panels, x: splitX, y: splitY } = split;
+        const { percent, index, maxIndex } = node;
+        const isHorizontal = splitOrientation === SplitOrientation.Horizontal;
+        const isVertical = splitOrientation === SplitOrientation.Vertical;
+        const hasResizer = index < maxIndex;
+        const isFirst = index === 0;
+        let x = 0;
+        let y = 0;
 
-    const getPanelDimensions = (panel: PanelInterface & { index: number }, parentDim) => {
-        if (panel.type === PanelType.Root) {
-            return {
-                ...parentDim,
-                index: panel.index,
-                x: 0,
-                y: 0,
-                resizeHandler: false
-            };
-        }
-    
-        const { width, height, orientation, maxIndex } = parentDim;
-        const { percent } = panel;
-    
-        const isHorizontal = orientation === SplitOrientation.Horizontal;
-        const isVertical = orientation === SplitOrientation.Vertical;
-        const resizeHandler = panel.type === PanelType.Split && maxIndex !== panel.index;
-    
-        const dim = {
-            width:  isHorizontal ? width * percent / 100 - (resizeHandler ? 8 : 0) : width,
-            height: isVertical ? height * percent / 100 - (resizeHandler ? 8 : 0): height,
-            orientation: panel.orientation,
-            parentOrientation: orientation,
-            type: panel.type,
-            index: panel.index,
-            x: 0,
-            y: 0,
-            resizeHandler,
-        };
-    
-        return dim;
-    }    
-    
-    const resizeHandle = (panelDim) => {
-            const x = panelDim.parentOrientation === SplitOrientation.Horizontal ? panelDim.x + panelDim.width : panelDim.x;
-            const y = panelDim.parentOrientation === SplitOrientation.Vertical ? panelDim.y + panelDim.height : panelDim.y;
-            const handle = {
-                id: nanoid(10),
-                type: PanelType.Resize,
-                orientation: panelDim.parentOrientation,
-                width: panelDim.parentOrientation === SplitOrientation.Horizontal ? 8 : panelDim.width,
-                height: panelDim.parentOrientation === SplitOrientation.Vertical ? 8 : panelDim.height,
-                x, y
-            }
-        addToAllPanels(handle.id, handle)
-    }
-
-    const traversePanel = (
-        panel: PanelInterface & { index: number }, 
-        parent: { width: number; height: number, orientation: SplitOrientation, type: PanelType }) => 
-    {
-            const dim = getPanelDimensions(panel, parent);
-            if (dim.resizeHandler) {
-                resizeHandle(dim);
-            }
+        const lastPanelIndex = index - 1;
+        let lastPanel = allPanels[panels[lastPanelIndex]];
             
-            addToAllPanels(panel.id, dim);
+        if (!lastPanel) {
+            lastPanel = { x: 0, y: 0, width: 0, height: 0 };
+        }
 
-            if (panel.children) {
-                panel.children.forEach((p, i) => traversePanel({ ...p, index: i }, { ...dim, orientation: panel.orientation, maxIndex: panel.children.length - 1 }));
-            }
+        x = splitX + (isHorizontal ? lastPanel.x + lastPanel.width : 0);
+        y = splitY + (isVertical ? lastPanel.y + lastPanel.height : 0);
+        
+
+        const dim = {
+            width:  isHorizontal ? (width * percent / 100) : width,
+            height: isVertical ? (height * percent / 100) : height,
+            orientation: node.orientation,
+            splitOrientation,
+            type: node.type,
+            x,
+            y,
+            resizeHandle: hasResizer,
+            panels: panels
+        };
+
+        return dim;
     }
 
-    traversePanel({ ...layoutSettings, index: 0 }, { ...dimensions, orientation: layoutSettings.orientation, type: layoutSettings.type });
+    const traverseTree = (node, split) => {
+        const dim = getNodeDimensions(node, split);
+        addToAllPanels(node.id, dim);
+        if (node.type === PanelType.Split) {
+            node.children.forEach((child, index) => {
+                traverseTree(
+                    { ...child, index, maxIndex: node.children.length - 1 }, 
+                    { ...node, ...dim, panels: node.children.map(child => child.id) }
+                );
+            });
+        }
+    }
+
+    traverseTree({...layoutSettings, maxIndex: 0, index: 0}, {
+        width: dimensions.width,
+        height: dimensions.height,
+        type: PanelType.Split,
+        percent: 100,
+        orientation: SplitOrientation.Horizontal,
+        x: 0,
+        y: 0,
+        panels: layoutSettings.children.map((child) => child.id),
+    });
 
     return allPanels;
 })
