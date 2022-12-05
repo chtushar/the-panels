@@ -14,12 +14,12 @@
         {#if $panelsWithDimensions[id].type === PanelType.Panel}
           <div
             data-id={id}
-            class="absolute dark:bg-slate-900 bg-slate-500 rounded-md opacity-10"
+            class="absolute dark:bg-slate-900 bg-slate-500 rounded-md opacity-10 border border-solid border-amber-50"
             style="
               left: {$panelsWithDimensions[id].x}px; 
               top: {$panelsWithDimensions[id].y}px; 
-              width: {$panelsWithDimensions[id].width - ($panelsWithDimensions[id].resizeHandle && $panelsWithDimensions[id].splitOrientation === SplitOrientation.Horizontal ? 8 : 0)}px; 
-              height: {$panelsWithDimensions[id].height - ($panelsWithDimensions[id].resizeHandle && $panelsWithDimensions[id].splitOrientation === SplitOrientation.Vertical ? 8 : 0)}px;"
+              width: {$panelsWithDimensions[id].width}px; 
+              height: {$panelsWithDimensions[id].height}px;"
           />
         {/if}
         <!-- {#if $panelsWithDimensions[id].type === PanelType.Resize}

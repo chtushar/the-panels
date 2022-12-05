@@ -52,29 +52,43 @@ export const panels = writable<{
                 children: [
                     {
                         id: 'lU7nIxd7B9',
-                        type: PanelType.Panel,
+                        type: PanelType.Split,
                         orientation: SplitOrientation.Horizontal,
                         percent: 30,
-                        // children: [
-                        //     {
-                        //         id: 'oSC_U2Vcyn',
-                        //         type: PanelType.Panel,
-                        //         orientation: SplitOrientation.Horizontal,
-                        //         percent: 50,
-                        //     },
-                        //     {
-                        //         id: 'WtaDeMFoUm',
-                        //         type: PanelType.Panel,
-                        //         orientation: SplitOrientation.Horizontal,
-                        //         percent: 50,
-                        //     }
-                        // ],
+                        children: [
+                            {
+                                id: 'oSC_U2Vcyn',
+                                type: PanelType.Panel,
+                                orientation: SplitOrientation.Horizontal,
+                                percent: 50,
+                            },
+                            {
+                                id: 'WtaDeMFoUm',
+                                type: PanelType.Panel,
+                                orientation: SplitOrientation.Horizontal,
+                                percent: 50,
+                            }
+                        ],
                     },
                     {
                         id: '_BkpAPvUb-',
-                        type: PanelType.Panel,
+                        type: PanelType.Split,
                         orientation: SplitOrientation.Horizontal,
                         percent: 70,
+                        children: [
+                            {
+                                id: 'LEwUg-xId1',
+                                type: PanelType.Panel,
+                                orientation: SplitOrientation.Horizontal,
+                                percent: 30,
+                            },
+                            {
+                                id: '7Z5lQaENSU',
+                                type: PanelType.Panel,
+                                orientation: SplitOrientation.Horizontal,
+                                percent: 70,
+                            }
+                        ]
                     }
                 ]
             }
@@ -97,21 +111,29 @@ export const panelsWithDimensions = derived([dimensions, panels], (value) => {
         const isHorizontal = splitOrientation === SplitOrientation.Horizontal;
         const isVertical = splitOrientation === SplitOrientation.Vertical;
         const hasResizer = index < maxIndex;
-        const isFirst = index === 0;
+
         let x = 0;
         let y = 0;
 
-        const lastPanelIndex = index - 1;
-        let lastPanel = allPanels[panels[lastPanelIndex]];
-            
-        if (!lastPanel) {
-            lastPanel = { x: 0, y: 0, width: 0, height: 0 };
-        }
+        const coveredWidth = panels.reduce((acc, panelId, i) => {
+            if (i >= index) {
+                return acc;
+            }
+            const panel = allPanels[panelId];
+            return acc + panel.width;
+        }, 0);
 
-        x = splitX + (isHorizontal ? lastPanel.x + lastPanel.width : 0);
-        y = splitY + (isVertical ? lastPanel.y + lastPanel.height : 0);
+        const coveredHeight = panels.reduce((acc, panelId, i) => {
+            if (i >= index) {
+                return acc;
+            }
+            const panel = allPanels[panelId];
+            return acc + panel.height;
+        }, 0);
+
+        x =  splitX + (isHorizontal ? coveredWidth : 0);
+        y =  splitY + (isVertical ? coveredHeight : 0);
         
-
         const dim = {
             width:  isHorizontal ? (width * percent / 100) : width,
             height: isVertical ? (height * percent / 100) : height,
