@@ -36,7 +36,7 @@ export const panels = writable<{
                 id: '3La5i2dZci',
                 type: PanelType.Panel,
                 orientation: SplitOrientation.Horizontal,
-                percent: 20,
+                percent: 30,
             },
             {
                 id: 'PEXjXDeaq2',
@@ -48,7 +48,7 @@ export const panels = writable<{
                 id: 'zQCYKjFLLk',
                 type: PanelType.Split,
                 orientation: SplitOrientation.Vertical,
-                percent: 50,
+                percent: 40,
                 children: [
                     {
                         id: 'lU7nIxd7B9',
@@ -106,44 +106,47 @@ export const panelsWithDimensions = derived([dimensions, panels], (value) => {
     }
     
     const getNodeDimensions = (node, split) => {
+        const { percent, index } = node;
         const { width, height, orientation: splitOrientation, panels, x: splitX, y: splitY } = split;
-        const { percent, index, maxIndex } = node;
         const isHorizontal = splitOrientation === SplitOrientation.Horizontal;
         const isVertical = splitOrientation === SplitOrientation.Vertical;
-        const hasResizer = index < maxIndex;
 
-        let x = 0;
-        let y = 0;
-
-        const coveredWidth = panels.reduce((acc, panelId, i) => {
+        const coveredWidth = panels.reduce((acc, { id }, i) => {
             if (i >= index) {
                 return acc;
             }
-            const panel = allPanels[panelId];
-            return acc + panel.width;
+            const panel = allPanels[id];
+            const xOffset = panel.splitOrientation === SplitOrientation.Horizontal ? 8 : 0;
+    
+            return acc + panel.width + xOffset;
         }, 0);
 
-        const coveredHeight = panels.reduce((acc, panelId, i) => {
+        const coveredHeight = panels.reduce((acc, { id }, i) => {
             if (i >= index) {
                 return acc;
             }
-            const panel = allPanels[panelId];
-            return acc + panel.height;
+            const panel = allPanels[id];
+            const yOffset = panel.splitOrientation === SplitOrientation.Vertical ? 8 : 0;
+
+            return acc + panel.height + yOffset;
         }, 0);
 
-        x =  splitX + (isHorizontal ? coveredWidth : 0);
-        y =  splitY + (isVertical ? coveredHeight : 0);
-        
+        const x =  splitX + (isHorizontal ? coveredWidth : 0);
+        const y =  splitY + (isVertical ? coveredHeight : 0);
+
+        const widthOffset = isHorizontal ? ( panels[index].hasResizer ? 8 : 0 ) : 0;
+        const heightOffset = isVertical ? ( panels[index].hasResizer ? 8 : 0 ) : 0;
+
         const dim = {
-            width:  isHorizontal ? (width * percent / 100) : width,
-            height: isVertical ? (height * percent / 100) : height,
+            width:  (isHorizontal ? (width * percent / 100) : width) - widthOffset,
+            height: (isVertical ? (height * percent / 100) : height) - heightOffset,
             orientation: node.orientation,
             splitOrientation,
             type: node.type,
-            x,
-            y,
-            resizeHandle: hasResizer,
-            panels: panels
+            x: x,
+            y: y,
+            resizeHandle: panels[index].hasResizer,
+            panels: panels,
         };
 
         return dim;
@@ -156,13 +159,13 @@ export const panelsWithDimensions = derived([dimensions, panels], (value) => {
             node.children.forEach((child, index) => {
                 traverseTree(
                     { ...child, index, maxIndex: node.children.length - 1 }, 
-                    { ...node, ...dim, panels: node.children.map(child => child.id) }
+                    { ...node, ...dim, panels: node.children.map(child => ({ id: child.id, hasResizer: index < node.children.length - 1 })), maxIndex: node.children.length - 1 }
                 );
             });
         }
     }
 
-    traverseTree({...layoutSettings, maxIndex: 0, index: 0}, {
+    traverseTree({...layoutSettings, index: 0}, {
         width: dimensions.width,
         height: dimensions.height,
         type: PanelType.Split,
@@ -170,7 +173,7 @@ export const panelsWithDimensions = derived([dimensions, panels], (value) => {
         orientation: SplitOrientation.Horizontal,
         x: 0,
         y: 0,
-        panels: layoutSettings.children.map((child) => child.id),
+        panels: [{ id: layoutSettings.id, hasResizer: false }],
     });
 
     return allPanels;
