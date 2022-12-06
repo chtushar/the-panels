@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { panelsWithDimensions, dimensions, PanelType, SplitOrientation } from './panels';
+  import { panelsWithDimensions, dimensions, PanelType, SplitOrientation, resizeHandle } from './panels';
   import clsx from 'clsx';
 
   panelsWithDimensions.subscribe((panels) => {
@@ -26,18 +26,17 @@
           </div>
         {/if}
         {#if $panelsWithDimensions[id].resizeHandle}
-          <div 
-            class=
-              "{
-                clsx(
-                  "absolute flex items-center justify-center",
-                  $panelsWithDimensions[id].splitOrientation === SplitOrientation.Horizontal ? "w-2 cursor-col-resize" : "h-2 cursor-row-resize",
-              )}"
-            style="
-            left: {$panelsWithDimensions[id].x + ($panelsWithDimensions[id].splitOrientation === SplitOrientation.Horizontal ? $panelsWithDimensions[id].width : 0)}px; 
-            top: {$panelsWithDimensions[id].y + ($panelsWithDimensions[id].splitOrientation === SplitOrientation.Vertical ? $panelsWithDimensions[id].height : 0)}px;
-            width: {$panelsWithDimensions[id].splitOrientation === SplitOrientation.Horizontal ? '8px' : $panelsWithDimensions[id].width}px;
-            height: {$panelsWithDimensions[id].splitOrientation === SplitOrientation.Vertical ? '8px' : $panelsWithDimensions[id].height}px;"
+          <div
+            class="{
+              clsx(
+                "absolute flex items-center justify-center",
+                $panelsWithDimensions[id].splitOrientation === SplitOrientation.Horizontal ? "w-2 cursor-col-resize" : "h-2 cursor-row-resize",
+            )}"
+            style:left="{$panelsWithDimensions[id].x + ($panelsWithDimensions[id].splitOrientation === SplitOrientation.Horizontal ? $panelsWithDimensions[id].width : 0)}px" 
+            style:top="{$panelsWithDimensions[id].y + ($panelsWithDimensions[id].splitOrientation === SplitOrientation.Vertical ? $panelsWithDimensions[id].height : 0)}px"
+            style:width="{$panelsWithDimensions[id].splitOrientation === SplitOrientation.Horizontal ? '8px' : $panelsWithDimensions[id].width}px"
+            style:height="{$panelsWithDimensions[id].splitOrientation === SplitOrientation.Vertical ? '8px' : $panelsWithDimensions[id].height}px"
+            use:resizeHandle={{ id, orientation: $panelsWithDimensions[id].splitOrientation, splitId: $panelsWithDimensions[id].splitId }}
           >
             <div 
             class=

@@ -97,8 +97,8 @@ export const panels = writable<{
 });
 
 export const panelsWithDimensions = derived([dimensions, panels], (value) => {
-    const [dimensions, panels] = value;
-    const { layoutSettings } = panels;
+    const [$dimensions, $panels] = value;
+    const { layoutSettings } = $panels;
     let allPanels = {};
 
     const addToAllPanels = (id: string, dimensions) => {
@@ -141,12 +141,13 @@ export const panelsWithDimensions = derived([dimensions, panels], (value) => {
             width:  (isHorizontal ? (width * percent / 100) : width) - widthOffset,
             height: (isVertical ? (height * percent / 100) : height) - heightOffset,
             orientation: node.orientation,
-            splitOrientation,
             type: node.type,
             x: x,
             y: y,
             resizeHandle: panels[index].hasResizer,
             panels: panels,
+            splitOrientation,
+            splitId: split.id,
         };
 
         return dim;
@@ -166,8 +167,8 @@ export const panelsWithDimensions = derived([dimensions, panels], (value) => {
     }
 
     traverseTree({...layoutSettings, index: 0}, {
-        width: dimensions.width,
-        height: dimensions.height,
+        width: $dimensions.width,
+        height: $dimensions.height,
         type: PanelType.Split,
         percent: 100,
         orientation: SplitOrientation.Horizontal,
@@ -178,3 +179,34 @@ export const panelsWithDimensions = derived([dimensions, panels], (value) => {
 
     return allPanels;
 })
+
+export const resizeHandle = (node, param) => {
+    let isDragging = false;
+
+    const handleMousedown = (e) => {
+        isDragging = true;
+    };
+
+    const handleMouseMove = (e) => {
+        if (isDragging) {
+            console.log('dragging');
+        }
+    };
+
+    const handleMouseUp = (e) => {
+        isDragging = false;
+    };
+    
+
+    node.addEventListener('mousedown', handleMousedown);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mousemove', handleMouseMove);
+
+    return {
+        destroy: () => {
+            node.removeEventListener('mousedown', handleMousedown);
+            document.removeEventListener('mouseup', handleMouseUp);
+            document.removeEventListener('mousemove', handleMouseMove);
+        }
+    };
+}
