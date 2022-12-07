@@ -99,9 +99,9 @@ export const panels = writable<{
 
 export const panelsPathCache = writable<{ [key: string]: Array<number> }>({ '1BXcuB6i66': [] });
 
-export const panelsWithDimensions = derived([dimensions, panels], (value) => {
-    const [$dimensions, $panels] = value;
-    const { layoutSettings } = $panels;
+export const panelsWithDimensions = writable({});
+
+export const setPanelsWithDimensions = ($panels: PanelInterface, $dimensions) => {
     let allPanels = {};
 
     const addToAllPanels = (id: string, dimensions) => {
@@ -177,7 +177,7 @@ export const panelsWithDimensions = derived([dimensions, panels], (value) => {
         }
     }
 
-    traverseTree({...layoutSettings, index: 0}, {
+    traverseTree({...$panels, index: 0}, {
         id: 'root',
         width: $dimensions.width,
         height: $dimensions.height,
@@ -186,95 +186,84 @@ export const panelsWithDimensions = derived([dimensions, panels], (value) => {
         orientation: SplitOrientation.Horizontal,
         x: 0,
         y: 0,
-        panels: [{ id: layoutSettings.id, hasResizer: false }],
+        panels: [{ id: $panels.id, hasResizer: false }],
     });
 
     return allPanels;
-})
+};
 
-export const resizeHandle = (node, param) => {
+export const resizeHandle = (node, params) => {
     let isDragging = false;
     let startX = 0;
+    let startY = 0;
+    let firstPanelStartWidth = undefined;
+    let nextPanelStartWidth = undefined;
+    let nextPanelStartX = undefined;
 
-    const handleMousedown = (e) => {
+    const handleMouseDown = (e) => {
         isDragging = true;
         startX = e.clientX;
-    };
-
+        startY = e.clientY;
+    }
     const handleMouseMove = (e) => {
         if (isDragging) {
-            panels.subscribe(($panels) => {
-                const { layoutSettings } = $panels;
-                const { id, index, splitId, cache, splitOrientation } = param;
-                const firstIndex = index;
-                const nextIndex = index + 1;
+            panelsWithDimensions.update($panels => {
+                let panels = $panels;
+                const { id } = params;
+                const firstPanel = panels[id];
+                const nextPanel = panels[firstPanel.panels[firstPanel.index + 1].id];
+                const split = panels[firstPanel.splitId];
 
-                if(cache[splitId].length === 0) {
-                    if (splitOrientation === SplitOrientation.Horizontal) {
-                        const { width: splitWidth } = getDimesnionsFromPath(splitId);
-                        const deltaPercent = (e.clientX - startX);
-                        
+                if (typeof firstPanelStartWidth === 'undefined') {
+                    firstPanelStartWidth = firstPanel.width;
+                }
+
+                if (typeof nextPanelStartWidth === 'undefined') {
+                    nextPanelStartWidth = nextPanel.width;
+                }
+
+                if (typeof nextPanelStartX === 'undefined') {
+                    nextPanelStartX = nextPanel.x;
+                }
+
+                if (firstPanel.splitOrientation === SplitOrientation.Horizontal) {
+                    const delta = e.clientX - startX;
+                    console.log(delta, firstPanel.width);
+
+                    panels = {
+                        ...panels,
+                        [id]: {
+                            ...firstPanel,
+                            width: Math.min(Math.max(firstPanelStartWidth + delta, 30), split.width - 8),
+                        },
+                        [nextPanel.id]: {
+                            ...nextPanel,
+                            width: Math.min(Math.max(nextPanelStartWidth - delta, 30), split.width - 8),
+                            x: nextPanelStartX + delta,
+                        }
                     }
                 }
+                
+                return panels;
             });
         }
-    };
-
+    }
     const handleMouseUp = (e) => {
         isDragging = false;
-    };
-    
+        firstPanelStartWidth = undefined;
+        nextPanelStartWidth = undefined;
+        nextPanelStartX = undefined;
+    }
 
-    node.addEventListener('mousedown', handleMousedown);
-    document.addEventListener('mouseup', throttle(handleMouseUp));
+    node.addEventListener('mousedown', handleMouseDown);
     document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
 
     return {
-        destroy: () => {
-            node.removeEventListener('mousedown', handleMousedown);
-            document.removeEventListener('mouseup', handleMouseUp);
+        destroy() {
+            node.removeEventListener('mousedown', handleMouseDown);
             document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
         }
     };
 }
-
-const getDimesnionsFromPath = (id) => {
-    let dim = null;
-    panelsWithDimensions.subscribe((value) => {
-        dim = value[id];
-    })
-    return dim;
-};
-
-const setPanelsWithDimensions = (panels) => {
-    
-};
-
-
-// const findPath = (key) => {
-//     const path = [];
-
-//     const traverse = (node) => {
-//         if (node.id === key) {
-//             return true;
-//         }
-            
-//         if (node.type === PanelType.Split) {
-//             for (let i = 0; i < node.children.length; i++) {
-//                 path.push(i);
-//                 if (traverse(node.children[i])) {
-//                     return true;
-//                 }
-//                 path.pop();
-//             }
-//         }
-//     }
-
-//     panels.subscribe((value) => {
-//         traverse(value.layoutSettings);
-//     });
-
-//     console.log(path);
-
-//     return path;
-// }

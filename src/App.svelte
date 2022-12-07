@@ -1,11 +1,26 @@
 <script lang="ts">
-  import { panelsWithDimensions, dimensions, PanelType, SplitOrientation, resizeHandle , panelsPathCache} from './panels';
+  import { derived } from 'svelte/store';
   import clsx from 'clsx';
+  import { 
+    panelsWithDimensions, 
+    dimensions, 
+    panels, 
+    setPanelsWithDimensions,
+    PanelType,
+    SplitOrientation,
+    resizeHandle
+  } from './panels';
+
+  const _ = derived([dimensions, panels], ([dim, p]) => {
+    $panelsWithDimensions = setPanelsWithDimensions(p.layoutSettings, dim);
+    return [dim, p];
+  })
 
   panelsWithDimensions.subscribe((panels) => {
     // console.table(panels);
   });
-  
+
+  $_
 </script>
 
 <main class="flex flex-col items-center justify-center h-full p-4 dark:bg-neutral-900 bg-neutral-50">
@@ -30,20 +45,14 @@
           <div
             class="{
               clsx(
-                "absolute flex items-center justify-center",
+                "absolute flex items-center justify-center bg-black",
                 $panelsWithDimensions[id].splitOrientation === SplitOrientation.Horizontal ? "w-2 cursor-col-resize" : "h-2 cursor-row-resize",
             )}"
             style:left="{$panelsWithDimensions[id].x + ($panelsWithDimensions[id].splitOrientation === SplitOrientation.Horizontal ? $panelsWithDimensions[id].width : 0)}px" 
             style:top="{$panelsWithDimensions[id].y + ($panelsWithDimensions[id].splitOrientation === SplitOrientation.Vertical ? $panelsWithDimensions[id].height : 0)}px"
             style:width="{$panelsWithDimensions[id].splitOrientation === SplitOrientation.Horizontal ? '8px' : $panelsWithDimensions[id].width}px"
             style:height="{$panelsWithDimensions[id].splitOrientation === SplitOrientation.Vertical ? '8px' : $panelsWithDimensions[id].height}px"
-            use:resizeHandle={{ 
-              id,
-              index: $panelsWithDimensions[id].index,
-              splitId: $panelsWithDimensions[id].splitId,
-              cache: $panelsPathCache,
-              splitOrientation: $panelsWithDimensions[id].splitOrientation,
-            }}
+            use:resizeHandle={{ id }}
           >
             <div 
             class=
@@ -60,29 +69,3 @@
     </div>
   </div>
 </main>
-
-<!-- 
-{#if $panelsWithDimensions[id].resizeHandle}
-          <div 
-            class=
-              "{
-                clsx(
-                  "absolute flex items-center justify-center",
-                  $panelsWithDimensions[id].splitOrientation === SplitOrientation.Horizontal ? "w-2 h-full cursor-col-resize" : "w-full h-2 cursor-row-resize",
-
-              )}"
-            style="
-              left: {$panelsWithDimensions[id].x + $panelsWithDimensions[id].width}px; 
-              top: {$panelsWithDimensions[id].y}px;"
-          >
-            <div 
-              class=
-                "{
-                  clsx(
-                    "bg-slate-300 dark:bg-slate-700",
-                    $panelsWithDimensions[id].splitOrientation === SplitOrientation.Horizontal ? "w-0.5 h-8" : "w-8 h-0.5",
-                  )
-                }" 
-            />
-          </div>
-        {/if} -->
