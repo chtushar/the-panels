@@ -1,4 +1,5 @@
 import { nanoid } from 'nanoid';
+import throttle from 'lodash/throttle';
 import { derived, writable } from 'svelte/store';
 
 
@@ -96,6 +97,8 @@ export const panels = writable<{
     }
 });
 
+export const panelsPathCache = writable<{ [key: string]: Array<number> }>({ '1BXcuB6i66': [] });
+
 export const panelsWithDimensions = derived([dimensions, panels], (value) => {
     const [$dimensions, $panels] = value;
     const { layoutSettings } = $panels;
@@ -148,6 +151,10 @@ export const panelsWithDimensions = derived([dimensions, panels], (value) => {
             panels: panels,
             splitOrientation,
             splitId: split.id,
+            splitIndex: index,
+            splitWidth: width,
+            splitHeight: height,
+            index,
         };
 
         return dim;
@@ -158,15 +165,20 @@ export const panelsWithDimensions = derived([dimensions, panels], (value) => {
         addToAllPanels(node.id, dim);
         if (node.type === PanelType.Split) {
             node.children.forEach((child, index) => {
+                panelsPathCache.update(cache => {
+                    cache[child.id] = [...(cache[node.id] ?? []), index];
+                    return cache;
+                });
                 traverseTree(
                     { ...child, index, maxIndex: node.children.length - 1 }, 
                     { ...node, ...dim, panels: node.children.map(child => ({ id: child.id, hasResizer: index < node.children.length - 1 })), maxIndex: node.children.length - 1 }
-                );
+                )
             });
         }
     }
 
     traverseTree({...layoutSettings, index: 0}, {
+        id: 'root',
         width: $dimensions.width,
         height: $dimensions.height,
         type: PanelType.Split,
@@ -182,14 +194,29 @@ export const panelsWithDimensions = derived([dimensions, panels], (value) => {
 
 export const resizeHandle = (node, param) => {
     let isDragging = false;
+    let startX = 0;
 
     const handleMousedown = (e) => {
         isDragging = true;
+        startX = e.clientX;
     };
 
     const handleMouseMove = (e) => {
         if (isDragging) {
-            console.log('dragging');
+            panels.subscribe(($panels) => {
+                const { layoutSettings } = $panels;
+                const { id, index, splitId, cache, splitOrientation } = param;
+                const firstIndex = index;
+                const nextIndex = index + 1;
+
+                if(cache[splitId].length === 0) {
+                    if (splitOrientation === SplitOrientation.Horizontal) {
+                        const { width: splitWidth } = getDimesnionsFromPath(splitId);
+                        const deltaPercent = (e.clientX - startX);
+                        
+                    }
+                }
+            });
         }
     };
 
@@ -199,7 +226,7 @@ export const resizeHandle = (node, param) => {
     
 
     node.addEventListener('mousedown', handleMousedown);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mouseup', throttle(handleMouseUp));
     document.addEventListener('mousemove', handleMouseMove);
 
     return {
@@ -210,3 +237,44 @@ export const resizeHandle = (node, param) => {
         }
     };
 }
+
+const getDimesnionsFromPath = (id) => {
+    let dim = null;
+    panelsWithDimensions.subscribe((value) => {
+        dim = value[id];
+    })
+    return dim;
+};
+
+const setPanelsWithDimensions = (panels) => {
+    
+};
+
+
+// const findPath = (key) => {
+//     const path = [];
+
+//     const traverse = (node) => {
+//         if (node.id === key) {
+//             return true;
+//         }
+            
+//         if (node.type === PanelType.Split) {
+//             for (let i = 0; i < node.children.length; i++) {
+//                 path.push(i);
+//                 if (traverse(node.children[i])) {
+//                     return true;
+//                 }
+//                 path.pop();
+//             }
+//         }
+//     }
+
+//     panels.subscribe((value) => {
+//         traverse(value.layoutSettings);
+//     });
+
+//     console.log(path);
+
+//     return path;
+// }

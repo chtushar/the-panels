@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { panelsWithDimensions, dimensions, PanelType, SplitOrientation, resizeHandle } from './panels';
+  import { panelsWithDimensions, dimensions, PanelType, SplitOrientation, resizeHandle , panelsPathCache} from './panels';
   import clsx from 'clsx';
 
   panelsWithDimensions.subscribe((panels) => {
-    console.table(panels);
+    // console.table(panels);
   });
+  
 </script>
 
 <main class="flex flex-col items-center justify-center h-full p-4 dark:bg-neutral-900 bg-neutral-50">
@@ -36,7 +37,13 @@
             style:top="{$panelsWithDimensions[id].y + ($panelsWithDimensions[id].splitOrientation === SplitOrientation.Vertical ? $panelsWithDimensions[id].height : 0)}px"
             style:width="{$panelsWithDimensions[id].splitOrientation === SplitOrientation.Horizontal ? '8px' : $panelsWithDimensions[id].width}px"
             style:height="{$panelsWithDimensions[id].splitOrientation === SplitOrientation.Vertical ? '8px' : $panelsWithDimensions[id].height}px"
-            use:resizeHandle={{ id, orientation: $panelsWithDimensions[id].splitOrientation, splitId: $panelsWithDimensions[id].splitId }}
+            use:resizeHandle={{ 
+              id,
+              index: $panelsWithDimensions[id].index,
+              splitId: $panelsWithDimensions[id].splitId,
+              cache: $panelsPathCache,
+              splitOrientation: $panelsWithDimensions[id].splitOrientation,
+            }}
           >
             <div 
             class=
